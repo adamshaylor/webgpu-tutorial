@@ -4,12 +4,12 @@ interface WebGpuInstance {
   adapter: GPUAdapter;
   device: GPUDevice;
   context: GPUCanvasContext;
+  format: GPUTextureFormat;
   encoder: GPUCommandEncoder;
 }
 
 const initWebGpu = async (
   canvas: HTMLCanvasElement,
-  clearValue: GPUColor,
 ): Promise<Result<WebGpuInstance>> => {
   try {
     if (!navigator.gpu) {
@@ -38,30 +38,14 @@ const initWebGpu = async (
       device,
       format,
     });
-
     const encoder = device.createCommandEncoder();
-
-    const clearPass = encoder.beginRenderPass({
-      colorAttachments: [
-        {
-          view: context.getCurrentTexture().createView(),
-          loadOp: 'clear',
-          storeOp: 'store',
-          clearValue,
-        },
-      ],
-    });
-    clearPass.end();
-    const clearCommandBuffer = encoder.finish();
-    device.queue.submit([clearCommandBuffer]);
-    // TODO: Can this be done in one submit call?
-    device.queue.submit([encoder.finish()]);
 
     return {
       ok: true,
       value: {
         adapter,
         context,
+        format,
         device,
         encoder,
       },
