@@ -1,24 +1,38 @@
+import initWebGpu from './lib/webGpu';
 import './style.css';
-import typescriptLogo from './typescript.svg';
-import viteLogo from '/vite.svg';
-import { setupCounter } from './counter.ts';
 
-document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
-  <div>
-    <a href="https://vitejs.dev" target="_blank">
-      <img src="${viteLogo}" class="logo" alt="Vite logo" />
-    </a>
-    <a href="https://www.typescriptlang.org/" target="_blank">
-      <img src="${typescriptLogo}" class="logo vanilla" alt="TypeScript logo" />
-    </a>
-    <h1>Vite + TypeScript</h1>
-    <div class="card">
-      <button id="counter" type="button"></button>
-    </div>
-    <p class="read-the-docs">
-      Click on the Vite and TypeScript logos to learn more
-    </p>
-  </div>
-`;
+const canvas = document.querySelector<HTMLCanvasElement>('#app-canvas');
 
-setupCounter(document.querySelector<HTMLButtonElement>('#counter')!);
+const x = (xPercent: number): number => canvas.width * xPercent;
+const y = (yPercent: number): number => canvas.height * yPercent;
+
+const minDim = (percentMinDim: number): number =>
+  canvas.width < canvas.height
+    ? canvas.height * percentMinDim
+    : canvas.width * percentMinDim;
+
+const resizeCanvas = (): void => {
+  const scale = window.devicePixelRatio;
+  canvas.width = Math.floor(canvas.clientWidth * scale);
+  canvas.height = Math.floor(canvas.clientHeight * scale);
+};
+
+resizeCanvas();
+window.addEventListener('resize', () => {
+  resizeCanvas();
+});
+
+const initResult = await initWebGpu(canvas, {
+  r: 255,
+  g: 0,
+  b: 0,
+  a: 1,
+});
+
+if (initResult.ok === false) {
+  alert(initResult.error.message);
+  throw initResult.error;
+}
+
+const gpu = initResult.value;
+console.log({ gpu });
