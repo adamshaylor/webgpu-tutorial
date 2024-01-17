@@ -1,4 +1,5 @@
 import initWebGpu from './lib/webGpu';
+import { numDimensions, gridSize } from './lib/constants';
 import cellShader from './lib/cellShader.wgsl?raw';
 import './style.css';
 
@@ -49,7 +50,6 @@ const draw = () => {
 
   gpu.device.queue.writeBuffer(vertexBuffer, 0, vertices);
 
-  const numDimensions = 2;
   const arrayStride = numDimensions * vertices.BYTES_PER_ELEMENT;
 
   const vertexBufferLayout: GPUVertexBufferLayout = {
@@ -83,8 +83,28 @@ const draw = () => {
     },
   });
 
+  const uniformArray = new Float32Array([gridSize, gridSize]);
+  const uniformBuffer = gpu.device.createBuffer({
+    label: 'Grid uniforms',
+    size: uniformArray.byteLength,
+    usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+  });
+  gpu.device.queue.writeBuffer(uniformBuffer, 0, uniformArray);
+
+  const bindGroup = gpu.device.createBindGroup({
+    label: 'Cell renderer bind group',
+    layout: cellPipeline.getBindGroupLayout(0),
+    entries: [
+      {
+        binding: 0,
+        resource: { buffer: uniformBuffer },
+      },
+    ],
+  });
+
   pass.setPipeline(cellPipeline);
   pass.setVertexBuffer(0, vertexBuffer);
+  pass.setBindGroup(0, bindGroup);
   pass.draw(vertices.length / numDimensions);
   pass.end();
   gpu.device.queue.submit([gpu.encoder.finish()]);
