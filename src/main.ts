@@ -1,10 +1,11 @@
 import {
   clearColor,
+  gameIterationIntervalMs,
   gridSize,
   renderLoopIntervalMs,
 } from './lib/settings';
 
-import { numDimensions } from './lib/definitions';
+import { numDimensions, type AOrB } from './lib/definitions';
 import initWebGpu from './lib/webGpu';
 import initCellState from './lib/cellState';
 import cellShader from './lib/cellShader.wgsl?raw';
@@ -88,20 +89,38 @@ const uniformBuffer = gpu.device.createBuffer({
 });
 gpu.device.queue.writeBuffer(uniformBuffer, 0, uniformArray);
 
-const bindGroup = gpu.device.createBindGroup({
-  label: 'Cell renderer bind group',
-  layout: cellPipeline.getBindGroupLayout(0),
-  entries: [
-    {
-      binding: 0,
-      resource: { buffer: uniformBuffer },
-    },
-    {
-      binding: 1,
-      resource: { buffer: initCellState(gpu.device) },
-    },
-  ],
-});
+const cellState = initCellState(gpu.device);
+
+const bindGroups: Record<AOrB, GPUBindGroup> = {
+  A: gpu.device.createBindGroup({
+    label: 'Cell renderer bind group A',
+    layout: cellPipeline.getBindGroupLayout(0),
+    entries: [
+      {
+        binding: 0,
+        resource: { buffer: uniformBuffer },
+      },
+      {
+        binding: 1,
+        resource: { buffer: cellState.bufferA },
+      },
+    ],
+  }),
+  B: gpu.device.createBindGroup({
+    label: 'Cell renderer bind group B',
+    layout: cellPipeline.getBindGroupLayout(0),
+    entries: [
+      {
+        binding: 0,
+        resource: { buffer: uniformBuffer },
+      },
+      {
+        binding: 1,
+        resource: { buffer: cellState.bufferB },
+      },
+    ],
+  }),
+};
 
 const render = () => {
   const encoder = gpu.device.createCommandEncoder();
@@ -136,7 +155,7 @@ const render = () => {
 
   pass.setPipeline(cellPipeline);
   pass.setVertexBuffer(0, vertexBuffer);
-  pass.setBindGroup(0, bindGroup);
+  pass.setBindGroup(0, bindGroups[cellState.activeBuffer]);
   pass.draw(
     vertices.length / numDimensions,
     Math.pow(gridSize, numDimensions),
@@ -152,3 +171,5 @@ setInterval(
   () => requestAnimationFrame(() => render()),
   renderLoopIntervalMs,
 );
+
+setInterval(() => cellState.iterate(), gameIterationIntervalMs);

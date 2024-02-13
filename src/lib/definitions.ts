@@ -13,3 +13,8 @@ export type Result<Value, ResultError extends Error = Error> =
   | ErrorResult<ResultError>;
 
 export const numDimensions = 2;
+
+/**
+ * Used to define ping-pong state updates.
+ */
+export type AOrB = 'A' | 'B';
