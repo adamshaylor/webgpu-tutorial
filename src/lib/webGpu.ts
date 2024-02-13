@@ -5,7 +5,6 @@ interface WebGpuInstance {
   device: GPUDevice;
   context: GPUCanvasContext;
   format: GPUTextureFormat;
-  encoder: GPUCommandEncoder;
 }
 
 const initWebGpu = async (
@@ -38,7 +37,6 @@ const initWebGpu = async (
       device,
       format,
     });
-    const encoder = device.createCommandEncoder();
 
     return {
       ok: true,
@@ -47,14 +45,13 @@ const initWebGpu = async (
         context,
         format,
         device,
-        encoder,
       },
     };
   } catch (error) {
     return {
       ok: false,
       error: new Error(
-        'Something went wrong. Does this device and browser support WebGPU?',
+        'Something unexpected went wrong. Does this device and browser support WebGPU?',
         { cause: error },
       ),
     };

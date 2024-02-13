@@ -7,7 +7,6 @@ fn vertexMain(
 ) -> @builtin(position) vec4f {
   let i = f32(instance);
   let cell = vec2f(i % grid.x, floor(i / grid.x));
-  // let cell = vec2f(i, i);
   let cellOffset = cell / grid * 2;
   let gridPos = (pos + 1) / grid - 1 + cellOffset;
   return vec4f(gridPos, 0, 1);

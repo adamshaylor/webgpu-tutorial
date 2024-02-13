@@ -11,3 +11,5 @@ export interface ErrorResult<ResultError extends Error> {
 export type Result<Value, ResultError extends Error = Error> =
   | OkResult<Value>
   | ErrorResult<ResultError>;
+
+export const numDimensions = 2;
