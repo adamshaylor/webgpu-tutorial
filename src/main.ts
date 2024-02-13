@@ -6,6 +6,7 @@ import {
 
 import { numDimensions } from './lib/definitions';
 import initWebGpu from './lib/webGpu';
+import initCellState from './lib/cellState';
 import cellShader from './lib/cellShader.wgsl?raw';
 import './style.css';
 
@@ -95,12 +96,15 @@ const bindGroup = gpu.device.createBindGroup({
       binding: 0,
       resource: { buffer: uniformBuffer },
     },
+    {
+      binding: 1,
+      resource: { buffer: initCellState(gpu.device) },
+    },
   ],
 });
 
-let encoder: GPUCommandEncoder;
 const render = () => {
-  encoder = gpu.device.createCommandEncoder();
+  const encoder = gpu.device.createCommandEncoder();
   const pass = encoder.beginRenderPass({
     colorAttachments: [
       {
