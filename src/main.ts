@@ -14,7 +14,9 @@ const resizeCanvas = (): void => {
 const initResult = await initWebGpu(canvas);
 if (initResult.ok === false) {
   alert(initResult.error.message);
-  throw initResult.error;
+  throw new Error(initResult.error.message, {
+    cause: initResult.error,
+  });
 }
 const gpu = initResult.value;
 
@@ -33,11 +35,11 @@ const draw = () => {
   // prettier-ignore
   const vertices = new Float32Array([
   //   X,    Y,
-    -0.8, -0.8, // Triangle 1 (Blue)
+    -0.8, -0.8, // Triangle 1
      0.8, -0.8,
      0.8,  0.8,
   
-    -0.8, -0.8, // Triangle 2 (Red)
+    -0.8, -0.8, // Triangle 2
      0.8,  0.8,
     -0.8,  0.8,
   ])
@@ -105,7 +107,10 @@ const draw = () => {
   pass.setPipeline(cellPipeline);
   pass.setVertexBuffer(0, vertexBuffer);
   pass.setBindGroup(0, bindGroup);
-  pass.draw(vertices.length / numDimensions);
+  pass.draw(
+    vertices.length / numDimensions,
+    Math.pow(gridSize, numDimensions),
+  );
   pass.end();
   gpu.device.queue.submit([gpu.encoder.finish()]);
 };
