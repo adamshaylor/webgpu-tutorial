@@ -17,4 +17,4 @@ export const numDimensions = 2;
 /**
  * Used to define ping-pong state updates.
  */
-export type AOrB = 'A' | 'B';
+export type AOrB = 'a' | 'b';

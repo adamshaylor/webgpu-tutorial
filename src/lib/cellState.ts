@@ -5,8 +5,7 @@ import { gridSize } from './settings';
  * Implements the ping-pong technique for state updates.
  */
 interface CellState {
-  bufferA: Readonly<GPUBuffer>;
-  bufferB: Readonly<GPUBuffer>;
+  gpuBuffers: Readonly<Record<AOrB, GPUBuffer>>;
   activeBuffer: AOrB;
   iterate: () => void;
   iterationStep: number;
@@ -26,18 +25,20 @@ const initCellState = (device: GPUDevice): Readonly<CellState> => {
   };
 
   cellState = {
-    bufferA: device.createBuffer({
-      label: 'Cell state A',
-      size: cellStateArray.byteLength,
-      usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
-    }),
-    bufferB: device.createBuffer({
-      label: 'Cell state B',
-      size: cellStateArray.byteLength,
-      usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
-    }),
+    gpuBuffers: {
+      a: device.createBuffer({
+        label: 'Cell state A',
+        size: cellStateArray.byteLength,
+        usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
+      }),
+      b: device.createBuffer({
+        label: 'Cell state B',
+        size: cellStateArray.byteLength,
+        usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
+      }),
+    },
     get activeBuffer() {
-      return iterationStep % 2 ? 'B' : 'A';
+      return iterationStep % 2 ? 'b' : 'a';
     },
     iterate,
     get iterationStep() {
@@ -45,15 +46,10 @@ const initCellState = (device: GPUDevice): Readonly<CellState> => {
     },
   };
 
-  for (let i = 0; i < cellStateArray.length; i += 3) {
-    cellStateArray[i] = 1;
-  }
-  device.queue.writeBuffer(cellState.bufferA, 0, cellStateArray);
-
   for (let i = 0; i < cellStateArray.length; i += 1) {
-    cellStateArray[i] = i % 2;
+    cellStateArray[i] = Math.random() > 0.6 ? 1 : 0;
   }
-  device.queue.writeBuffer(cellState.bufferB, 0, cellStateArray);
+  device.queue.writeBuffer(cellState.gpuBuffers.a, 0, cellStateArray);
 
   return cellState;
 };

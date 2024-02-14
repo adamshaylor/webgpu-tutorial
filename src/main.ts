@@ -139,7 +139,7 @@ gpu.device.queue.writeBuffer(uniformBuffer, 0, uniformArray);
 const cellState = initCellState(gpu.device);
 
 const bindGroups: Record<AOrB, GPUBindGroup> = {
-  A: gpu.device.createBindGroup({
+  a: gpu.device.createBindGroup({
     label: 'Cell renderer bind group A',
     layout: bindGroupLayout,
     entries: [
@@ -149,15 +149,15 @@ const bindGroups: Record<AOrB, GPUBindGroup> = {
       },
       {
         binding: 1,
-        resource: { buffer: cellState.bufferA },
+        resource: { buffer: cellState.gpuBuffers.a },
       },
       {
         binding: 2,
-        resource: { buffer: cellState.bufferB },
+        resource: { buffer: cellState.gpuBuffers.b },
       },
     ],
   }),
-  B: gpu.device.createBindGroup({
+  b: gpu.device.createBindGroup({
     label: 'Cell renderer bind group B',
     layout: bindGroupLayout,
     entries: [
@@ -167,32 +167,15 @@ const bindGroups: Record<AOrB, GPUBindGroup> = {
       },
       {
         binding: 1,
-        resource: { buffer: cellState.bufferB },
+        resource: { buffer: cellState.gpuBuffers.b },
       },
       {
         binding: 2,
-        resource: { buffer: cellState.bufferA },
+        resource: { buffer: cellState.gpuBuffers.a },
       },
     ],
   }),
 };
-
-// const cellPipeline = gpu.device.createRenderPipeline({
-//   label: 'Cell pipeline',
-//   layout: pipelineLayout,
-//   vertex: {
-//     module: cellShaderModule,
-//     entryPoint: 'vertexMain',
-//     buffers: [vertexBufferLayout]
-//   },
-//   fragment: {
-//     module: cellShaderModule,
-//     entryPoint: 'fragmentMain',
-//     targets: [{
-//       format: gpu.format
-//     }]
-//   }
-// })
 
 const render = () => {
   const encoder = gpu.device.createCommandEncoder();
