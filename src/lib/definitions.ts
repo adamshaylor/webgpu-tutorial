@@ -18,3 +18,5 @@ export const numDimensions = 2;
  * Used to define ping-pong state updates.
  */
 export type AOrB = 'a' | 'b';
+
+export type GridCoordinates = [rowIndex: number, columnIndex: number];

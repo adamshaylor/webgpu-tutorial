@@ -1,5 +1,18 @@
-import { numDimensions, type AOrB } from './definitions';
-import { gridSize } from './settings';
+import {
+  numDimensions,
+  GridCoordinates,
+  type AOrB,
+} from './definitions';
+
+import {
+  gridSize,
+  simplexNoiseFrequency,
+  simplexNoiseAmplitude,
+  noiseToLifeThreshold,
+  debugInitialState,
+} from './settings';
+
+import { createNoise2D } from 'simplex-noise';
 
 /**
  * Implements the ping-pong technique for state updates.
@@ -38,7 +51,7 @@ const initCellState = (device: GPUDevice): Readonly<CellState> => {
       }),
     },
     get activeBuffer() {
-      return iterationStep % 2 ? 'b' : 'a';
+      return debugInitialState ? 'a' : iterationStep % 2 ? 'b' : 'a';
     },
     iterate,
     get iterationStep() {
@@ -46,8 +59,21 @@ const initCellState = (device: GPUDevice): Readonly<CellState> => {
     },
   };
 
+  const cellIndexToCoordinates = (index: number): GridCoordinates => {
+    let row = Math.floor(index / gridSize);
+    let column = index % gridSize;
+    return [row, column];
+  };
+
+  const noise2D = createNoise2D();
   for (let i = 0; i < cellStateArray.length; i += 1) {
-    cellStateArray[i] = Math.random() > 0.6 ? 1 : 0;
+    const [row, column] = cellIndexToCoordinates(i);
+    const x = column / gridSize;
+    const y = row / gridSize;
+    const noiseValue =
+      noise2D(x * simplexNoiseFrequency, y * simplexNoiseFrequency) *
+      simplexNoiseAmplitude;
+    cellStateArray[i] = noiseValue > noiseToLifeThreshold ? 1 : 0;
   }
   device.queue.writeBuffer(cellState.gpuBuffers.a, 0, cellStateArray);
 

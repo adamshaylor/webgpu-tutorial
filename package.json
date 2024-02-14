@@ -17,5 +17,8 @@
   "volta": {
     "node": "20.10.0",
     "npm": "10.2.5"
+  },
+  "dependencies": {
+    "simplex-noise": "^4.0.1"
   }
 }
