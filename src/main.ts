@@ -8,9 +8,13 @@ import {
 import { numDimensions, type AOrB } from './lib/definitions';
 import initWebGpu from './lib/webGpu';
 import initCellState from './lib/cellState';
-import cellShader from './lib/cellShader.wgsl?raw';
+import cellShader from './lib/shaders/cellShader.wgsl?raw';
+import simulationShader from './lib/shaders/simulationShader.wgsl?raw';
 import './style.css';
 
+// This workgroup size must be kept in sync the corresponding
+// WGSL shader value.
+const simulationWorkgroupSize = 8;
 const canvas = document.querySelector<HTMLCanvasElement>('#app-canvas');
 
 const resizeCanvas = (): void => {
@@ -66,9 +70,52 @@ const cellShaderModule = gpu.device.createShaderModule({
   code: cellShader,
 });
 
+const simulationShaderModule = gpu.device.createShaderModule({
+  label: 'Game of Life simulation shader',
+  code: simulationShader,
+});
+
+const bindGroupLayout = gpu.device.createBindGroupLayout({
+  label: 'Cell bind group layout',
+  entries: [
+    {
+      binding: 0,
+      visibility:
+        GPUShaderStage.VERTEX |
+        GPUShaderStage.FRAGMENT |
+        GPUShaderStage.COMPUTE,
+      buffer: {}, // Grid uniform buffer
+    },
+    {
+      binding: 1,
+      visibility: GPUShaderStage.VERTEX | GPUShaderStage.COMPUTE,
+      buffer: { type: 'read-only-storage' }, // Cell state input buffer
+    },
+    {
+      binding: 2,
+      visibility: GPUShaderStage.COMPUTE,
+      buffer: { type: 'storage' }, // Cell state output buffer
+    },
+  ],
+});
+
+const pipelineLayout = gpu.device.createPipelineLayout({
+  label: 'Cell pipeline layout',
+  bindGroupLayouts: [bindGroupLayout],
+});
+
+const simulationPipeline = gpu.device.createComputePipeline({
+  label: 'Simulation pipeline',
+  layout: pipelineLayout,
+  compute: {
+    module: simulationShaderModule,
+    entryPoint: 'computeMain',
+  },
+});
+
 const cellPipeline = gpu.device.createRenderPipeline({
   label: 'Cell pipeline',
-  layout: 'auto',
+  layout: pipelineLayout,
   vertex: {
     module: cellShaderModule,
     entryPoint: 'vertexMain',
@@ -94,7 +141,7 @@ const cellState = initCellState(gpu.device);
 const bindGroups: Record<AOrB, GPUBindGroup> = {
   A: gpu.device.createBindGroup({
     label: 'Cell renderer bind group A',
-    layout: cellPipeline.getBindGroupLayout(0),
+    layout: bindGroupLayout,
     entries: [
       {
         binding: 0,
@@ -104,11 +151,15 @@ const bindGroups: Record<AOrB, GPUBindGroup> = {
         binding: 1,
         resource: { buffer: cellState.bufferA },
       },
+      {
+        binding: 2,
+        resource: { buffer: cellState.bufferB },
+      },
     ],
   }),
   B: gpu.device.createBindGroup({
     label: 'Cell renderer bind group B',
-    layout: cellPipeline.getBindGroupLayout(0),
+    layout: bindGroupLayout,
     entries: [
       {
         binding: 0,
@@ -118,13 +169,42 @@ const bindGroups: Record<AOrB, GPUBindGroup> = {
         binding: 1,
         resource: { buffer: cellState.bufferB },
       },
+      {
+        binding: 2,
+        resource: { buffer: cellState.bufferA },
+      },
     ],
   }),
 };
 
+// const cellPipeline = gpu.device.createRenderPipeline({
+//   label: 'Cell pipeline',
+//   layout: pipelineLayout,
+//   vertex: {
+//     module: cellShaderModule,
+//     entryPoint: 'vertexMain',
+//     buffers: [vertexBufferLayout]
+//   },
+//   fragment: {
+//     module: cellShaderModule,
+//     entryPoint: 'fragmentMain',
+//     targets: [{
+//       format: gpu.format
+//     }]
+//   }
+// })
+
 const render = () => {
   const encoder = gpu.device.createCommandEncoder();
-  const pass = encoder.beginRenderPass({
+
+  const computePass = encoder.beginComputePass();
+  computePass.setPipeline(simulationPipeline);
+  computePass.setBindGroup(0, bindGroups[cellState.activeBuffer]);
+  const workgroupCount = Math.ceil(gridSize / simulationWorkgroupSize);
+  computePass.dispatchWorkgroups(workgroupCount, workgroupCount);
+  computePass.end();
+
+  const renderPass = encoder.beginRenderPass({
     colorAttachments: [
       {
         view: gpu.context.getCurrentTexture().createView(),
@@ -144,7 +224,7 @@ const render = () => {
     0,
     Math.round((canvas.height - viewportLength) / 2),
   );
-  pass.setViewport(
+  renderPass.setViewport(
     viewportOffsetX,
     viewportOffsetY,
     viewportLength,
@@ -153,14 +233,15 @@ const render = () => {
     1,
   );
 
-  pass.setPipeline(cellPipeline);
-  pass.setVertexBuffer(0, vertexBuffer);
-  pass.setBindGroup(0, bindGroups[cellState.activeBuffer]);
-  pass.draw(
+  renderPass.setPipeline(cellPipeline);
+  renderPass.setVertexBuffer(0, vertexBuffer);
+  renderPass.setBindGroup(0, bindGroups[cellState.activeBuffer]);
+  renderPass.draw(
     vertices.length / numDimensions,
     Math.pow(gridSize, numDimensions),
   );
-  pass.end();
+  renderPass.end();
+
   gpu.device.queue.submit([encoder.finish()]);
 };
 

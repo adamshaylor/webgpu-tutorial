@@ -11,10 +11,18 @@ struct VertexOutput {
 @group(0) @binding(0) var<uniform> grid: vec2f;
 @group(0) @binding(1) var<storage> cellState: array<u32>;
 
+fn cellVector(cellIndex: u32, gridSize: f32) -> vec2f {
+  let cellIndexF = f32(cellIndex);
+  let column = cellIndexF % gridSize;
+  let row = floor(cellIndexF / gridSize);
+  return vec2f(column, row);
+}
+
 @vertex
 fn vertexMain(input: VertexInput) -> VertexOutput {
-  let i = f32(input.instance);
-  let cell = vec2f(i % grid.x, floor(i / grid.x));
+  // let i = f32(input.instance);
+  // let cell = vec2f(i % grid.x, floor(i / grid.x));
+  let cell = cellVector(input.instance, grid.x);
   let state = f32(cellState[input.instance]);
   let cellOffset = cell / grid * 2;
   let gridPos = (input.pos * state + 1) / grid - 1 + cellOffset;
