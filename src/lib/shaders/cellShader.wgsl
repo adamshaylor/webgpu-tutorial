@@ -20,8 +20,6 @@ fn cellVector(cellIndex: u32, gridSize: f32) -> vec2f {
 
 @vertex
 fn vertexMain(input: VertexInput) -> VertexOutput {
-  // let i = f32(input.instance);
-  // let cell = vec2f(i % grid.x, floor(i / grid.x));
   let cell = cellVector(input.instance, grid.x);
   let state = f32(cellState[input.instance]);
   let cellOffset = cell / grid * 2;
