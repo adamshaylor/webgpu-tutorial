@@ -239,7 +239,10 @@ const main = async (): Promise<void> => {
     renderLoopIntervalMs,
   );
 
-  setInterval(() => cellState.iterate(), gameIterationIntervalMs);
+  setInterval(
+    () => requestAnimationFrame(() => cellState.iterate()),
+    gameIterationIntervalMs,
+  );
 };
 
 main();
